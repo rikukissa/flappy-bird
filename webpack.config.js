@@ -1,10 +1,12 @@
+'use strict';
+
 var path = require('path');
 var webpack = require('webpack');
 
 module.exports = {
   devtool: 'eval',
   entry: [
-    'webpack-dev-server/client?http://localhost:3000',
+    'webpack-dev-server/client?http://localhost:9000',
     'webpack/hot/only-dev-server',
     './scripts/index'
   ],
@@ -25,6 +27,12 @@ module.exports = {
       test: /\.jsx?$/,
       loaders: ['react-hot', 'babel'],
       include: path.join(__dirname, 'scripts')
+    }, {
+      test: /\.css$/,
+      loaders: ['style', 'css']
+    }, {
+      test: /\.styl$/,
+      loaders: ['style', 'css', 'stylus']
     }]
   }
 };
