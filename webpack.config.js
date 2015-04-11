@@ -3,22 +3,34 @@
 var path = require('path');
 var webpack = require('webpack');
 
+var production = process.env.NODE_ENV == 'production';
+
+var entries = ['./scripts/index'];
+var plugins = [];
+
+
+if(!production) {
+  entries = [
+    'webpack-dev-server/client?http://localhost:9000',
+    'webpack/hot/only-dev-server'
+  ].concat(entries);
+
+  plugins = [
+    new webpack.HotModuleReplacementPlugin(),
+    new webpack.NoErrorsPlugin()
+  ].concat(plugins);
+}
+
+
 module.exports = {
   devtool: 'eval',
-  entry: [
-    'webpack-dev-server/client?http://localhost:9000',
-    'webpack/hot/only-dev-server',
-    './scripts/index'
-  ],
+  entry: entries,
   output: {
     path: path.join(__dirname, 'build'),
     filename: 'bundle.js',
     publicPath: '/scripts/'
   },
-  plugins: [
-    new webpack.HotModuleReplacementPlugin(),
-    new webpack.NoErrorsPlugin()
-  ],
+  plugins: plugins,
   resolve: {
     extensions: ['', '.js', '.jsx']
   },

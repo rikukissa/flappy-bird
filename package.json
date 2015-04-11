@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "description": "Boilerplate for ReactJS project with hot code reloading",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "build": "NODE_ENV=production webpack -p"
   },
   "repository": {
     "type": "git",
