@@ -6,7 +6,9 @@ var webpack = require('webpack');
 var production = process.env.NODE_ENV == 'production';
 
 var entries = ['./scripts/index'];
-var plugins = [];
+var plugins = [
+  require('webpack-notifier')
+];
 
 
 if(!production) {
@@ -45,6 +47,14 @@ module.exports = {
     }, {
       test: /\.styl$/,
       loaders: ['style', 'css', 'stylus']
-    }]
+    }
+      // ,
+      // {
+      //   test: /\.(jpe?g|png|gif|svg)$/i,
+      //   loaders: [
+      //     'url?limit=800!image!image-maxsize?useImageMagick=true'
+      //   ]
+      // }
+    ]
   }
 };
