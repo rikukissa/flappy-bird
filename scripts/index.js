@@ -1,14 +1,16 @@
 import set from 'lodash.set';
 import clone from 'lodash.clone';
-
 import Bacon from 'bacon.animationframe';
 require('./bufferUntilValue');
 
+import {
+  FRAME_RATE,
+  WORLD_HEIGHT,
+  BIRD_HEIGHT
+} from './constants';
+
 import render from './render'
 
-const FRAME_RATE = 1000 / 60;
-const WORLD_HEIGHT = 200;
-const BIRD_HEIGHT = 10;
 
 const frames = Bacon.scheduleAnimationFrame().bufferWithTime(FRAME_RATE);
 const input = Bacon.fromEvent(window, 'click');
@@ -21,13 +23,13 @@ const stopStream = bus.startWith(false);
 const initialBird = {
   radius: WORLD_HEIGHT,
   y: WORLD_HEIGHT / 2 - BIRD_HEIGHT / 2,
-  vy: 0,
-  tick: 0
+  vy: 0
 };
 
 const updatedWorld = Bacon.combineAsArray(tick, stopStream).scan({
   running: false,
-  height: WORLD_HEIGHT
+  height: WORLD_HEIGHT,
+  tick: 0
 }, (world, [input, stop]) => {
 
   world.tick++;
