@@ -1,0 +1,32 @@
+#background {
+  width: 100%;
+  height: 100%;
+  background: url('~!url!crop!../assets/sprite.png?x=0&y=0&w=144&h=256');
+  background-size: auto 100%;
+  position: fixed;
+}
+
+@keyframes move {
+  0% {
+    background-position: 0px 0px;
+  }
+  100% {
+    background-position: -154px 0px;
+  }
+}
+
+#ground {
+  width: 100%;
+  height: 56px;
+  background: url('~!url!crop!../assets/sprite.png?x=146&y=0&w=154&h=56');
+  background-size: auto 100%;
+  position: fixed;
+  bottom: 0;
+}
+.running #ground {
+  animation: move 2s infinite linear;
+}
+
+canvas {
+  position: fixed;
+}
