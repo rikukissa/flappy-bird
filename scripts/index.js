@@ -11,14 +11,19 @@ import {
 
 import render from './render'
 
-
-const frames = Bacon.scheduleAnimationFrame().bufferWithTime(FRAME_RATE);
+// User events
 const input = Bacon.fromEvent(window, 'click');
 
+// Game tick
+const frames = Bacon.scheduleAnimationFrame().bufferWithTime(FRAME_RATE);
 const tick = input.bufferUntilValue(frames)
 
-const bus = new Bacon.Bus();
-const stopStream = bus.startWith(false);
+// Input caused by game state
+const gameOutput = new Bacon.Bus();
+const birdTouchesGround = gameOutput.map(([, bird]) => bird.y > 300);
+const gameEnds = birdTouchesGround;
+
+const allInput = Bacon.zipAsArray(tick, gameEnds.toProperty(false));
 
 const initialBird = {
   radius: WORLD_HEIGHT,
@@ -26,11 +31,13 @@ const initialBird = {
   vy: 0
 };
 
-const updatedWorld = Bacon.combineAsArray(tick, stopStream).scan({
+const initialWorld = {
   running: false,
   height: WORLD_HEIGHT,
   tick: 0
-}, (world, [input, stop]) => {
+}
+
+const updatedWorld = allInput.scan(initialWorld, (world, [input, gameEnds]) => {
 
   world.tick++;
 
@@ -38,23 +45,18 @@ const updatedWorld = Bacon.combineAsArray(tick, stopStream).scan({
     return set(world, 'running', true);
   }
 
-  if(world.running && stop) {
+  if(world.running && gameEnds) {
     return set(world, 'running', false);
   }
 
   return world;
-})
+});
 
-const runningGame = Bacon
-  .zipAsArray(tick, updatedWorld)
-  .filter(([, world]) => world.running)
-  .map(([input]) => input)
+const runningWorld = Bacon.zipAsArray(allInput, updatedWorld)
 
+const updatedBird = runningWorld.scan(initialBird, (bird, [[input, gameEnds], world]) => {
 
-
-const updatedBird = Bacon.combineAsArray(runningGame, stopStream.startWith(false))
-.scan(initialBird, (bird, [input, reset]) => {
-  if(reset) {
+  if(!world.running) {
     return initialBird;
   }
 
@@ -70,21 +72,6 @@ const updatedBird = Bacon.combineAsArray(runningGame, stopStream.startWith(false
 });
 
 const game = Bacon.combineAsArray(updatedWorld, updatedBird)
-const gameOver = game
-  .filter(([world, bird]) => bird.y > 200)
-  .filter(([world, bird]) => world.running);
 
-gameOver.onValue(() => {
-  bus.push(true);
-  bus.push(false);
-});
-
+game.onValue(x => gameOutput.push(x));
 game.onValue(render);
-
-// module.hot.accept('./render', function() {
-//   render = require('./render')
-// });
-
-// module.hot.accept('./tick', function() {
-//   tick = require('./tick')
-// });
