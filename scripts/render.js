@@ -69,14 +69,14 @@ function renderGround(world) {
   let movement = 0;
 
   if(world.running) {
-    movement = world.tick % spriteWidth * -1;
+    movement = (world.tick * 4) % spriteWidth * -1;
   }
 
   ctx.translate(0 + movement, canvas.height - spriteHeight);
 
   for(let i = 0; i < Math.ceil(canvas.width / spriteWidth) + 1; i++) {
     drawSprite(ctx, 'ground', 0, 0, spriteWidth, spriteHeight)
-    ctx.translate(spriteWidth, 0)
+    ctx.translate(spriteWidth - 1, 0)
   }
 
   ctx.restore();
