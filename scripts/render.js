@@ -80,8 +80,24 @@ function renderGround(world) {
   }
 
   ctx.restore();
+}
 
+function renderBackground(world) {
+  const sprite = sprites.background;
 
+  const spriteWidth = scale(sprite.w);
+  const spriteHeight = scale(sprite.h);
+
+  ctx.save();
+
+  ctx.translate(0, -scale(sprite.h) * 0.25);
+
+  for(let i = 0; i < Math.ceil(canvas.width / spriteWidth) + 1; i++) {
+    drawSprite(ctx, 'background', 0, 0, spriteWidth, spriteHeight)
+    ctx.translate(spriteWidth - 1, 0)
+  }
+
+  ctx.restore();
 }
 
 module.exports = function render([world, bird]) {
@@ -92,6 +108,7 @@ module.exports = function render([world, bird]) {
 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  renderBird(world, bird);
+  renderBackground(world);
   renderGround(world);
+  renderBird(world, bird);
 }
