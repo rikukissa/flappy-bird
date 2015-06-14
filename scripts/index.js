@@ -7,13 +7,16 @@ import {
   FRAME_RATE,
   WORLD_HEIGHT,
   BIRD_RADIUS,
-  GROUND_HEIGHT
+  GROUND_HEIGHT,
+  PAUSE_KEY
 } from './constants';
 
 import {random} from './utils'
 
 // User events
 const input = Bacon.fromEvent(window, 'click');
+const paused = Bacon.fromEvent(window, 'keydown')
+  .filter(ev => ev.keyCode === PAUSE_KEY).scan(false, paused => !paused);
 
 // Game tick
 const frames = Bacon.scheduleAnimationFrame().bufferWithTime(FRAME_RATE);
@@ -37,7 +40,7 @@ const birdTouchedGround = gameOutput
 
 const gameEnds = birdTouchedGround.startWith(false);
 
-const allInput = Bacon.combineAsArray(tick, gameEnds);
+const allInput = Bacon.combineAsArray(tick, gameEnds).filter(paused.not());
 
 const initialBird = {
   radius: WORLD_HEIGHT,
@@ -119,7 +122,7 @@ const updatedPipes = runningWorld.scan(initialPipes, (pipes, [, world]) => {
   return newPipes;
 });
 
-const game = Bacon.combineAsArray(updatedWorld, updatedBird, updatedPipes)
+const game = Bacon.combineAsArray(updatedWorld, updatedBird, updatedPipes, tick)
 
 game.onValue(world => gameOutput.push(world));
 
