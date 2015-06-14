@@ -73,18 +73,14 @@ function renderBird(world, bird) {
   ctx.restore()
 }
 
-function renderGround(world) {
+function renderGround(bird) {
   const sprite = sprites.ground;
   const spriteWidth = scale(sprite.w);
   const spriteHeight = scale(sprite.h);
 
   ctx.save();
 
-  let movement = 0;
-
-  if(world.running) {
-    movement = (world.tick * 4) % spriteWidth * -1;
-  }
+  const movement = bird.x % spriteWidth * -1;
 
   ctx.translate(0 + movement, canvas.height - scale(GROUND_HEIGHT) * 1.25);
 
@@ -115,7 +111,7 @@ function renderBackground(world) {
 }
 
 // TODO refactor
-function renderPipes(world, pipes) {
+function renderPipes(pipes, bird) {
   const sprite = sprites.pipe;
   const sprite2 = sprites.pipe2;
 
@@ -126,7 +122,8 @@ function renderPipes(world, pipes) {
   const sprite2Height = scale(sprite2.h);
 
   pipes.forEach((pipe) => {
-    const x = canvas.width - (world.tick - pipe.x) * 4;
+
+    const x = canvas.width - (bird.x - pipe.x);
 
     ctx.save();
     ctx.translate(x, canvas.height - scale(pipe.height) + scale(HOLE_HEIGHT));
@@ -149,7 +146,7 @@ module.exports = function render(world, bird, pipes) {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   renderBackground(world);
-  renderPipes(world, pipes);
-  renderGround(world);
+  renderPipes(pipes, bird);
+  renderGround(bird);
   renderBird(world, bird);
 }

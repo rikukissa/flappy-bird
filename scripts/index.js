@@ -44,6 +44,8 @@ const allInput = Bacon.combineAsArray(tick, gameEnds).filter(paused.not());
 
 const initialBird = {
   radius: WORLD_HEIGHT,
+  x: 0,
+  vx: 4,
   y: WORLD_HEIGHT / 2 - BIRD_RADIUS / 2,
   vy: 0,
   touchesGround: false,
@@ -81,6 +83,8 @@ const updatedBird = runningWorld.scan(initialBird, (bird, [[input, gameEnds], wo
   }
 
   const newBird = {
+    x: bird.x + bird.vx,
+    vx: bird.vx,
     y: bird.y + bird.vy,
     vy: bird.vy - 0.1,
     touchesGround: false,
@@ -101,7 +105,7 @@ const updatedBird = runningWorld.scan(initialBird, (bird, [[input, gameEnds], wo
   return newBird;
 });
 
-const updatedPipes = runningWorld.scan(initialPipes, (pipes, [, world]) => {
+const updatedPipes = Bacon.zipAsArray(updatedWorld, updatedBird).scan(initialPipes, (pipes, [world, bird]) => {
   if(!world.running) {
     return initialPipes;
   }
@@ -114,7 +118,7 @@ const updatedPipes = runningWorld.scan(initialPipes, (pipes, [, world]) => {
 
   if(world.tick % 100 === 0) {
     newPipes.push({
-      x: world.tick,
+      x: bird.x,
       height: random(WORLD_HEIGHT/2, WORLD_HEIGHT - WORLD_HEIGHT/4)
     })
   }
