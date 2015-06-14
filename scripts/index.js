@@ -13,6 +13,7 @@ import {
 } from './constants';
 
 const GRAVITY = 0.2;
+const PIPE_OFFSET = WORLD_HEIGHT * 0.4;
 
 import {random} from './utils'
 
@@ -122,7 +123,7 @@ const updatedPipes = Bacon.zipAsArray(updatedWorld, updatedBird).scan(initialPip
   if(bird.x % PIPE_DISTANCE === 0) {
     newPipes.push({
       x: bird.x + (PIPE_DISTANCE * 5),
-      height: random(WORLD_HEIGHT/2, WORLD_HEIGHT - WORLD_HEIGHT/4)
+      height: random(PIPE_OFFSET, WORLD_HEIGHT)
     })
   }
 

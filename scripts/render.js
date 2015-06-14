@@ -7,6 +7,7 @@ import {
   WORLD_HEIGHT,
   BIRD_HEIGHT,
   HOLE_HEIGHT,
+  PIPE_WIDTH,
   GROUND_HEIGHT,
   BIRD_RADIUS
 } from './constants';
@@ -21,7 +22,8 @@ const sprites = {
         {x: 264, y: 90, w: 17, h: 12},
         {x: 264, y: 63, w: 17, h: 12}],
   pipe: {x: 330, y: 0, w: 26, h: 121},
-  pipe2: {x: 302, y: 0, w: 26, h: 135}
+  pipe2: {x: 302, y: 0, w: 26, h: 135},
+  pipe3: {x: 302, y: 0, w: 26, h: 100}
 }
 
 const atlas = new Image()
@@ -115,23 +117,47 @@ function renderPipes(pipes, bird) {
   const sprite = sprites.pipe;
   const sprite2 = sprites.pipe2;
 
+  const pipeWidth = scale(PIPE_WIDTH);
+  const ratio = sprite.w / pipeWidth;
+
   const spriteWidth = scale(sprite.w);
-  const spriteHeight = scale(sprite.h);
+  const spriteHeight = scale(sprite.h) * ratio;
 
   const sprite2Width = scale(sprite2.w);
-  const sprite2Height = scale(sprite2.h);
+  const sprite2Height = scale(sprite2.h) * ratio;
+
 
   pipes.forEach((pipe) => {
     const x = (canvas.width / 2 - scale(BIRD_RADIUS)) - (scale(bird.x) - scale(pipe.x));
+    let y = canvas.height - scale(pipe.height) + scale(HOLE_HEIGHT);
+
+
+    if((canvas.height - (y + spriteHeight)) > scale(GROUND_HEIGHT)) {
+      ctx.save();
+      ctx.translate(x, y + spriteHeight);
+      drawSprite(ctx, sprites.pipe3, 0, 0, pipeWidth, spriteHeight)
+      ctx.restore();
+    }
 
     ctx.save();
-    ctx.translate(x, canvas.height - scale(pipe.height) + scale(HOLE_HEIGHT));
-    drawSprite(ctx, sprite, 0, 0, spriteWidth, spriteHeight)
+    ctx.translate(x, y);
+    drawSprite(ctx, sprite, 0, 0, pipeWidth, spriteHeight)
     ctx.restore();
 
     ctx.save();
-    ctx.translate(x, canvas.height - scale(pipe.height) - sprite2Height);
-    drawSprite(ctx, sprite2, 0, 0, sprite2Width, sprite2Height)
+
+    y = canvas.height - scale(pipe.height) - sprite2Height;
+
+    if(y > 0) {
+      ctx.save();
+      ctx.translate(x, 0);
+      drawSprite(ctx, sprites.pipe3, 0, 0, pipeWidth, scale(sprites.pipe3.h) * ratio)
+      ctx.restore();
+    }
+
+    ctx.translate(x, y);
+
+    drawSprite(ctx, sprite2, 0, 0, pipeWidth, sprite2Height)
     ctx.restore();
   })
 }
