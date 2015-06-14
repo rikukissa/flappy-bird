@@ -12,6 +12,8 @@ import {
   PAUSE_KEY
 } from './constants';
 
+const GRAVITY = 0.2;
+
 import {random} from './utils'
 
 // User events
@@ -87,7 +89,7 @@ const updatedBird = runningWorld.scan(initialBird, (bird, [[input, gameEnds], wo
     x: bird.x + bird.vx,
     vx: bird.vx,
     y: bird.y + bird.vy,
-    vy: bird.vy - 0.1,
+    vy: bird.vy - GRAVITY,
     touchesGround: false,
     groundTouchTime: bird.touchesGround ? bird.groundTouchTime + 1 : 0
   }
@@ -101,7 +103,7 @@ const updatedBird = runningWorld.scan(initialBird, (bird, [[input, gameEnds], wo
   }
 
   if(input.length > 0 && !newBird.touchesGround) {
-    newBird.vy = 2;
+    newBird.vy = 3;
   }
   return newBird;
 });
