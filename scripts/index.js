@@ -6,10 +6,11 @@ require('./bufferUntilValue');
 import {
   FRAME_RATE,
   WORLD_HEIGHT,
-  BIRD_HEIGHT
+  BIRD_RADIUS,
+  GROUND_HEIGHT
 } from './constants';
 
-import render from './render'
+import {random} from './utils'
 
 // User events
 const input = Bacon.fromEvent(window, 'click');
@@ -20,15 +21,30 @@ const tick = input.bufferUntilValue(frames)
 
 // Input caused by game state
 const gameOutput = new Bacon.Bus();
-const birdTouchesGround = gameOutput.map(([, bird]) => bird.y > 300);
-const gameEnds = birdTouchesGround;
 
-const allInput = Bacon.zipAsArray(tick, gameEnds.toProperty(false));
+function birdTouchesGround(bird) {
+  return bird.y - BIRD_RADIUS * 2 <= GROUND_HEIGHT;
+}
+
+const birdTouchedGround = gameOutput
+  .flatMap(([, bird]) => {
+    if(birdTouchesGround(bird) && bird.groundTouchTime === 0) {
+      return Bacon.later(1000, true);
+    }
+    return false;
+  })
+  .skipDuplicates();
+
+const gameEnds = birdTouchedGround.startWith(false);
+
+const allInput = Bacon.combineAsArray(tick, gameEnds);
 
 const initialBird = {
   radius: WORLD_HEIGHT,
-  y: WORLD_HEIGHT / 2 - BIRD_HEIGHT / 2,
-  vy: 0
+  y: WORLD_HEIGHT / 2 - BIRD_RADIUS / 2,
+  vy: 0,
+  touchesGround: false,
+  groundTouchTime: 0
 };
 
 const initialWorld = {
@@ -37,8 +53,9 @@ const initialWorld = {
   tick: 0
 }
 
-const updatedWorld = allInput.scan(initialWorld, (world, [input, gameEnds]) => {
+const initialPipes = [];
 
+const updatedWorld = allInput.scan(initialWorld, (world, [input, gameEnds]) => {
   world.tick++;
 
   if(!world.running && input.length > 0) {
@@ -62,16 +79,53 @@ const updatedBird = runningWorld.scan(initialBird, (bird, [[input, gameEnds], wo
 
   const newBird = {
     y: bird.y + bird.vy,
-    vy: bird.vy + 0.1
+    vy: bird.vy - 0.1,
+    touchesGround: false,
+    groundTouchTime: bird.touchesGround ? bird.groundTouchTime + 1 : 0
   }
 
-  if(input.length > 0) {
-    newBird.vy = -2;
+  const birdBottom = newBird.y - BIRD_RADIUS * 2;
+
+  if(birdBottom <= GROUND_HEIGHT) {
+    newBird.y = GROUND_HEIGHT + BIRD_RADIUS * 2;
+    newBird.vy = 0;
+    newBird.touchesGround = true;
+  }
+
+  if(input.length > 0 && !newBird.touchesGround) {
+    newBird.vy = 2;
   }
   return newBird;
 });
 
-const game = Bacon.combineAsArray(updatedWorld, updatedBird)
+const updatedPipes = runningWorld.scan(initialPipes, (pipes, [, world]) => {
+  if(!world.running) {
+    return initialPipes;
+  }
 
-game.onValue(x => gameOutput.push(x));
-game.onValue(render);
+  const newPipes = pipes.slice(0);
+
+  if(newPipes.length > 6) {
+    newPipes.shift()
+  }
+
+  if(world.tick % 100 === 0) {
+    newPipes.push({
+      x: world.tick,
+      height: random(WORLD_HEIGHT/2, WORLD_HEIGHT - WORLD_HEIGHT/4)
+    })
+  }
+
+  return newPipes;
+});
+
+const game = Bacon.combineAsArray(updatedWorld, updatedBird, updatedPipes)
+
+game.onValue(world => gameOutput.push(world));
+
+let destroyRenderer = game.onValues(require('./render'));
+
+module.hot.accept('./render', () => {
+  destroyRenderer();
+  destroyRenderer = game.onValues(require('./render'));
+});

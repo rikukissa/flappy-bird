@@ -5,7 +5,10 @@ require('./style.css');
 import {
   FRAME_RATE,
   WORLD_HEIGHT,
-  BIRD_HEIGHT
+  BIRD_HEIGHT,
+  HOLE_HEIGHT,
+  GROUND_HEIGHT,
+  BIRD_RADIUS
 } from './constants';
 
 import {canvas, ctx} from './canvas';
@@ -14,17 +17,18 @@ const sprites = {
   background: {x: 0, y: 0, w: 144, h: 256},
   ground: {x: 146, y: 0, w: 153, h: 56},
   score: {x: 146, y: 58, w: 113, h: 58},
-  bird: {x: 223, y: 124, w: 17, h: 12},
-  bird2: {x: 264, y: 90, w: 17, h: 12},
+  bird: [{x: 223, y: 124, w: 17, h: 12},
+        {x: 264, y: 90, w: 17, h: 12},
+        {x: 264, y: 63, w: 17, h: 12}],
   pipe: {x: 330, y: 0, w: 26, h: 121},
+  pipe2: {x: 302, y: 0, w: 26, h: 135}
 }
 
 const atlas = new Image()
 atlas.src = require('url!../assets/sprite.png');
 
 
-function drawSprite(context, type, x, y, w, h) {
-  const sprite = sprites[type];
+function drawSprite(context, sprite, x, y, w, h) {
   context.drawImage(atlas, sprite.x, sprite.y, sprite.w, sprite.h, x, y, w, h);
 }
 
@@ -41,20 +45,30 @@ function updateRunningClass(running) {
   running ? classList.add('running') : classList.remove('running');
 }
 
+function getFrame(sprites, tick) {
+  return sprites[Math.floor(tick / sprites.length) % sprites.length];
+}
 
 function renderBird(world, bird) {
-  const sprite = sprites.bird;
-
   ctx.save()
-  ctx.translate(canvas.width / 2, scale(bird.y))
-  ctx.rotate(radians(bird.vy * 7))
 
-  if(bird.vy < 0) {
-    const asset = world.tick % 10 < 5 ? 'bird' : 'bird2';
-    drawSprite(ctx, asset, 0, 0, scale(sprite.w), scale(sprite.h))
-  } else {
-    drawSprite(ctx, 'bird', 0, 0, scale(sprite.w), scale(sprite.h))
-  }
+  //console.log(scale(bird.y), bird.y);
+  const radius = scale(BIRD_RADIUS);
+  const divider = radius * 2;
+
+  ctx.translate(canvas.width / 2 + radius, canvas.height - scale(bird.y) + radius);
+
+
+  ctx.rotate(radians(-bird.vy * 7 + bird.groundTouchTime * 4))
+
+  ctx.translate(-radius, -radius)
+  //ctx.fillRect(0, 0, scale(BIRD_RADIUS * 2), scale(BIRD_RADIUS * 2))
+
+  const sprite = bird.vy > 0 ? getFrame(sprites.bird, world.tick) : sprites.bird[0];
+
+  const ratio = sprite.w / sprite.h;
+
+  drawSprite(ctx, sprite, 0, 0, divider * ratio, divider)
 
   ctx.restore()
 }
@@ -72,10 +86,10 @@ function renderGround(world) {
     movement = (world.tick * 4) % spriteWidth * -1;
   }
 
-  ctx.translate(0 + movement, canvas.height - spriteHeight);
+  ctx.translate(0 + movement, canvas.height - scale(GROUND_HEIGHT) * 1.25);
 
   for(let i = 0; i < Math.ceil(canvas.width / spriteWidth) + 1; i++) {
-    drawSprite(ctx, 'ground', 0, 0, spriteWidth, spriteHeight)
+    drawSprite(ctx, sprite, 0, 0, spriteWidth, spriteHeight)
     ctx.translate(spriteWidth - 1, 0)
   }
 
@@ -93,14 +107,40 @@ function renderBackground(world) {
   ctx.translate(0, -scale(sprite.h) * 0.25);
 
   for(let i = 0; i < Math.ceil(canvas.width / spriteWidth) + 1; i++) {
-    drawSprite(ctx, 'background', 0, 0, spriteWidth, spriteHeight)
+    drawSprite(ctx, sprite, 0, 0, spriteWidth, spriteHeight)
     ctx.translate(spriteWidth - 1, 0)
   }
 
   ctx.restore();
 }
 
-module.exports = function render([world, bird]) {
+// TODO refactor
+function renderPipes(world, pipes) {
+  const sprite = sprites.pipe;
+  const sprite2 = sprites.pipe2;
+
+  const spriteWidth = scale(sprite.w);
+  const spriteHeight = scale(sprite.h);
+
+  const sprite2Width = scale(sprite2.w);
+  const sprite2Height = scale(sprite2.h);
+
+  pipes.forEach((pipe) => {
+    const x = canvas.width - (world.tick - pipe.x) * 4;
+
+    ctx.save();
+    ctx.translate(x, canvas.height - scale(pipe.height) + scale(HOLE_HEIGHT));
+    drawSprite(ctx, sprite, 0, 0, spriteWidth, spriteHeight)
+    ctx.restore();
+
+    ctx.save();
+    ctx.translate(x, canvas.height - scale(pipe.height) - sprite2Height);
+    drawSprite(ctx, sprite2, 0, 0, sprite2Width, sprite2Height)
+    ctx.restore();
+  })
+}
+
+module.exports = function render(world, bird, pipes) {
   if(world.running !== running) {
     updateRunningClass(world.running);
     running = world.running;
@@ -109,6 +149,7 @@ module.exports = function render([world, bird]) {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   renderBackground(world);
+  renderPipes(world, pipes);
   renderGround(world);
   renderBird(world, bird);
 }
