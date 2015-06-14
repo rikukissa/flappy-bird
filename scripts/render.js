@@ -129,7 +129,7 @@ function renderPipes(pipes, bird) {
 
   pipes.forEach((pipe) => {
     const x = (canvas.width / 2 - scale(BIRD_RADIUS)) - (scale(bird.x) - scale(pipe.x));
-    let y = canvas.height - scale(pipe.height) + scale(HOLE_HEIGHT);
+    let y = canvas.height - scale(pipe.y) + scale(HOLE_HEIGHT);
 
 
     if((canvas.height - (y + spriteHeight)) > scale(GROUND_HEIGHT)) {
@@ -146,7 +146,7 @@ function renderPipes(pipes, bird) {
 
     ctx.save();
 
-    y = canvas.height - scale(pipe.height) - sprite2Height;
+    y = canvas.height - scale(pipe.y) - sprite2Height;
 
     if(y > 0) {
       ctx.save();

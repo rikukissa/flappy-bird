@@ -1,5 +1,6 @@
 import set from 'lodash.set';
 import clone from 'lodash.clone';
+import some from 'lodash.some';
 import Bacon from 'bacon.animationframe';
 require('./bufferUntilValue');
 
@@ -9,7 +10,9 @@ import {
   BIRD_RADIUS,
   GROUND_HEIGHT,
   PIPE_DISTANCE,
-  PAUSE_KEY
+  PAUSE_KEY,
+  HOLE_HEIGHT,
+  PIPE_WIDTH
 } from './constants';
 
 const GRAVITY = 0.2;
@@ -41,6 +44,17 @@ const birdTouchedGround = gameOutput
     return false;
   })
   .skipDuplicates();
+
+const birdTouchedPipe = gameOutput
+  .map(([, bird, pipes]) => {
+    return some(pipes, (pipe) => {
+      // Horizontal check
+      if(!(bird.x + BIRD_RADIUS*2 > pipe.x && bird.x < pipe.x + PIPE_WIDTH)) return false;
+
+      // Bird not vertically inside the hole
+      return !(bird.y < pipe.y && bird.y - BIRD_RADIUS*2 > pipe.y - HOLE_HEIGHT)
+    });
+  });
 
 const gameEnds = birdTouchedGround.startWith(false);
 
@@ -80,7 +94,8 @@ const updatedWorld = allInput.scan(initialWorld, (world, [input, gameEnds]) => {
 
 const runningWorld = Bacon.zipAsArray(allInput, updatedWorld)
 
-const updatedBird = runningWorld.scan(initialBird, (bird, [[input, gameEnds], world]) => {
+const updatedBird = Bacon.zipAsArray(runningWorld, birdTouchedPipe)
+.scan(initialBird, (bird, [[[input, gameEnds], world], touchedPipe]) => {
 
   if(!world.running) {
     return initialBird;
@@ -88,7 +103,7 @@ const updatedBird = runningWorld.scan(initialBird, (bird, [[input, gameEnds], wo
 
   const newBird = {
     x: bird.x + bird.vx,
-    vx: bird.vx,
+    vx: touchedPipe ? 0 : bird.vx,
     y: bird.y + bird.vy,
     vy: bird.vy - GRAVITY,
     touchesGround: false,
@@ -123,7 +138,7 @@ const updatedPipes = Bacon.zipAsArray(updatedWorld, updatedBird).scan(initialPip
   if(bird.x % PIPE_DISTANCE === 0) {
     newPipes.push({
       x: bird.x + (PIPE_DISTANCE * 5),
-      height: random(PIPE_OFFSET, WORLD_HEIGHT)
+      y: random(PIPE_OFFSET, WORLD_HEIGHT)
     })
   }
 
