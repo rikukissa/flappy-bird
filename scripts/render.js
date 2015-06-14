@@ -56,7 +56,7 @@ function renderBird(world, bird) {
   const radius = scale(BIRD_RADIUS);
   const divider = radius * 2;
 
-  ctx.translate(canvas.width / 2 + radius, canvas.height - scale(bird.y) + radius);
+  ctx.translate(canvas.width / 2 - radius, canvas.height - scale(bird.y) + radius);
 
 
   ctx.rotate(radians(-bird.vy * 7 + bird.groundTouchTime * 4))
@@ -80,7 +80,7 @@ function renderGround(bird) {
 
   ctx.save();
 
-  const movement = bird.x % spriteWidth * -1;
+  const movement = scale(bird.x) % spriteWidth * -1;
 
   ctx.translate(0 + movement, canvas.height - scale(GROUND_HEIGHT) * 1.25);
 
@@ -122,8 +122,7 @@ function renderPipes(pipes, bird) {
   const sprite2Height = scale(sprite2.h);
 
   pipes.forEach((pipe) => {
-
-    const x = canvas.width - (bird.x - pipe.x);
+    const x = (canvas.width / 2 - scale(BIRD_RADIUS)) - (scale(bird.x) - scale(pipe.x));
 
     ctx.save();
     ctx.translate(x, canvas.height - scale(pipe.height) + scale(HOLE_HEIGHT));

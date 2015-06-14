@@ -8,6 +8,7 @@ import {
   WORLD_HEIGHT,
   BIRD_RADIUS,
   GROUND_HEIGHT,
+  PIPE_DISTANCE,
   PAUSE_KEY
 } from './constants';
 
@@ -45,7 +46,7 @@ const allInput = Bacon.combineAsArray(tick, gameEnds).filter(paused.not());
 const initialBird = {
   radius: WORLD_HEIGHT,
   x: 0,
-  vx: 4,
+  vx: 2,
   y: WORLD_HEIGHT / 2 - BIRD_RADIUS / 2,
   vy: 0,
   touchesGround: false,
@@ -112,13 +113,13 @@ const updatedPipes = Bacon.zipAsArray(updatedWorld, updatedBird).scan(initialPip
 
   const newPipes = pipes.slice(0);
 
-  if(newPipes.length > 6) {
+  if(newPipes.length > 15) {
     newPipes.shift()
   }
 
-  if(world.tick % 100 === 0) {
+  if(bird.x % PIPE_DISTANCE === 0) {
     newPipes.push({
-      x: bird.x,
+      x: bird.x + (PIPE_DISTANCE * 5),
       height: random(WORLD_HEIGHT/2, WORLD_HEIGHT - WORLD_HEIGHT/4)
     })
   }
