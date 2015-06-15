@@ -1,4 +1,5 @@
 import radians from 'degrees-radians';
+import range from 'lodash.range';
 
 require('./style.css');
 
@@ -88,7 +89,7 @@ function renderGround(bird) {
 
   for(let i = 0; i < Math.ceil(canvas.width / spriteWidth) + 1; i++) {
     drawSprite(ctx, sprite, 0, 0, spriteWidth, spriteHeight)
-    ctx.translate(spriteWidth - 1, 0)
+    ctx.translate(spriteWidth, 0)
   }
 
   ctx.restore();
@@ -106,7 +107,7 @@ function renderBackground(world) {
 
   for(let i = 0; i < Math.ceil(canvas.width / spriteWidth) + 1; i++) {
     drawSprite(ctx, sprite, 0, 0, spriteWidth, spriteHeight)
-    ctx.translate(spriteWidth - 1, 0)
+    ctx.translate(spriteWidth, 0)
   }
 
   ctx.restore();
@@ -125,18 +126,23 @@ function renderPipes(pipes, bird) {
 
   const sprite2Width = scale(sprite2.w);
   const sprite2Height = scale(sprite2.h) * ratio;
-
+  const shaftHeight = scale(sprites.pipe3.h) * ratio;
 
   pipes.forEach((pipe) => {
     const x = (canvas.width / 2 - scale(BIRD_RADIUS)) - (scale(bird.x) - scale(pipe.x));
     let y = canvas.height - scale(pipe.y) + scale(HOLE_HEIGHT);
 
+    const bottomPipeBottom = canvas.height - (y + spriteHeight);
 
-    if((canvas.height - (y + spriteHeight)) > scale(GROUND_HEIGHT)) {
-      ctx.save();
-      ctx.translate(x, y + spriteHeight);
-      drawSprite(ctx, sprites.pipe3, 0, 0, pipeWidth, spriteHeight)
-      ctx.restore();
+    if(bottomPipeBottom > scale(GROUND_HEIGHT)) {
+
+      range(Math.ceil((bottomPipeBottom - scale(GROUND_HEIGHT)) / shaftHeight)).forEach((i) => {
+        ctx.save();
+        ctx.translate(x, y + spriteHeight + shaftHeight * i);
+
+        drawSprite(ctx, sprites.pipe3, 0, 0, pipeWidth, shaftHeight)
+        ctx.restore();
+      })
     }
 
     ctx.save();
@@ -149,14 +155,15 @@ function renderPipes(pipes, bird) {
     y = canvas.height - scale(pipe.y) - sprite2Height;
 
     if(y > 0) {
-      ctx.save();
-      ctx.translate(x, 0);
-      drawSprite(ctx, sprites.pipe3, 0, 0, pipeWidth, scale(sprites.pipe3.h) * ratio)
-      ctx.restore();
+      range(Math.ceil(y / shaftHeight)).forEach((i) => {
+        ctx.save();
+        ctx.translate(x, y - i * shaftHeight - shaftHeight);
+        drawSprite(ctx, sprites.pipe3, 0, 0, pipeWidth, shaftHeight)
+        ctx.restore();
+      })
     }
 
     ctx.translate(x, y);
-
     drawSprite(ctx, sprite2, 0, 0, pipeWidth, sprite2Height)
     ctx.restore();
   })

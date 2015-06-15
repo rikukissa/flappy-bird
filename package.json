@@ -56,6 +56,7 @@
     "degrees-radians": "^1.0.1",
     "lodash.clone": "^3.0.2",
     "lodash.get": "^3.7.0",
+    "lodash.range": "^3.0.0",
     "lodash.set": "^3.7.4",
     "lodash.some": "^3.2.2",
     "react": "^0.13.0",
