@@ -2,3 +2,7 @@ html, body {
   margin: 0;
   overflow: hidden;
 }
+.overlay {
+  padding: 1em;
+  position: fixed;
+}

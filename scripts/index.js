@@ -21,16 +21,21 @@ const PIPE_OFFSET = WORLD_HEIGHT * 0.4;
 import {random} from './utils'
 
 // User events
-const input = Bacon.fromEvent(window, 'click');
+const userClicks = Bacon.fromEvent(window, 'click');
 const paused = Bacon.fromEvent(window, 'keydown')
   .filter(ev => ev.keyCode === PAUSE_KEY).scan(false, paused => !paused);
+const manuallyControlled = require('./store').isManual$;
 
 // Game tick
-const frames = Bacon.scheduleAnimationFrame().bufferWithTime(FRAME_RATE);
-const tick = input.bufferUntilValue(frames)
+const tick = Bacon.scheduleAnimationFrame().bufferWithTime(FRAME_RATE)
+  .filter(paused.or(manuallyControlled).not());
+
+const userClicksForFrame = userClicks.bufferUntilValue(tick)
 
 // Input caused by game state
 const gameOutput = new Bacon.Bus();
+
+// States coming from store
 
 function birdTouchesGround(bird) {
   return bird.y - BIRD_RADIUS * 2 <= GROUND_HEIGHT;
@@ -42,8 +47,7 @@ const birdTouchedGround = gameOutput
       return Bacon.later(1000, true);
     }
     return false;
-  })
-  .skipDuplicates();
+  });
 
 const birdTouchedPipe = gameOutput
   .map(([, bird, pipes]) => {
@@ -56,10 +60,21 @@ const birdTouchedPipe = gameOutput
     });
   });
 
-const gameEnds = birdTouchedGround.startWith(false);
+const gameEnds = birdTouchedGround;
 
-const allInput = Bacon.combineAsArray(tick, gameEnds).filter(paused.not());
+const output = Bacon.zipWith(
+  (birdTouchedGround, birdTouchedPipe, gameEnds) => ({birdTouchedGround, birdTouchedPipe, gameEnds}),
+  birdTouchedGround.startWith(false),
+  birdTouchedPipe.startWith(false),
+  gameEnds.startWith(false))
 
+const input = Bacon.zipWith((userClicksForFrame) => ({clicks: userClicksForFrame}), userClicksForFrame)
+
+const io = Bacon.zipAsArray(input, output);
+
+
+//io.log()
+// Initial values
 const initialBird = {
   radius: WORLD_HEIGHT,
   x: 0,
@@ -78,32 +93,31 @@ const initialWorld = {
 
 const initialPipes = [];
 
-const updatedWorld = allInput.scan(initialWorld, (world, [input, gameEnds]) => {
+
+const updatedWorld = io.scan(initialWorld, (world, [input, output]) => {
   world.tick++;
 
-  if(!world.running && input.length > 0) {
+  if(!world.running && input.clicks.length > 0) {
     return set(world, 'running', true);
   }
 
-  if(world.running && gameEnds) {
+  if(world.running && output.gameEnds) {
     return set(world, 'running', false);
   }
 
   return world;
 });
 
-const runningWorld = Bacon.zipAsArray(allInput, updatedWorld)
 
-const updatedBird = Bacon.zipAsArray(runningWorld, birdTouchedPipe)
-.scan(initialBird, (bird, [[[input, gameEnds], world], touchedPipe]) => {
-
+const updatedBird = Bacon.zipAsArray(io, updatedWorld)
+.scan(initialBird, (bird, [[input, output], world]) => {
   if(!world.running) {
     return initialBird;
   }
 
   const newBird = {
     x: bird.x + bird.vx,
-    vx: touchedPipe ? 0 : bird.vx,
+    vx: output.birdTouchedPipe ? 0 : bird.vx,
     y: bird.y + bird.vy,
     vy: bird.vy - GRAVITY,
     touchesGround: false,
@@ -118,13 +132,13 @@ const updatedBird = Bacon.zipAsArray(runningWorld, birdTouchedPipe)
     newBird.touchesGround = true;
   }
 
-  if(input.length > 0 && !newBird.touchesGround) {
+  if(input.clicks.length > 0 && !newBird.touchesGround) {
     newBird.vy = 3;
   }
   return newBird;
 });
-
-const updatedPipes = Bacon.zipAsArray(updatedWorld, updatedBird).scan(initialPipes, (pipes, [world, bird]) => {
+const updatedPipes = Bacon.zipAsArray(updatedWorld, updatedBird)
+.scan(initialPipes, (pipes, [world, bird]) => {
   if(!world.running) {
     return initialPipes;
   }
@@ -145,13 +159,14 @@ const updatedPipes = Bacon.zipAsArray(updatedWorld, updatedBird).scan(initialPip
   return newPipes;
 });
 
-const game = Bacon.combineAsArray(updatedWorld, updatedBird, updatedPipes, tick)
+const game = Bacon.zipAsArray(updatedWorld, updatedBird, updatedPipes)
 
+game.onValue(require('./store'));
 game.onValue(world => gameOutput.push(world));
 
-let destroyRenderer = game.onValues(require('./render'));
-
+// Rendering
+let destroyRenderer = game.merge(require('./store').selectedState$).onValues(require('./render'));
 module.hot.accept('./render', () => {
   destroyRenderer();
-  destroyRenderer = game.onValues(require('./render'));
+  destroyRenderer = game.merge(require('./store').selectedState$).onValues(require('./render'));
 });
