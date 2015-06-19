@@ -1,4 +1,5 @@
 import radians from 'degrees-radians';
+import extend from 'extend';
 import range from 'lodash.range';
 
 require('./style.css');
@@ -169,16 +170,31 @@ function renderPipes(pipes, bird) {
   })
 }
 
-module.exports = function render(world, bird, pipes) {
+function render(world, bird, pipes) {
   if(world.running !== running) {
     updateRunningClass(world.running);
     running = world.running;
   }
 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-
   renderBackground(world);
   renderPipes(pipes, bird);
   renderGround(bird);
   renderBird(world, bird);
 }
+
+
+function renderFuture([fWorld, fBird, fPipes], [world, bird, pipes]) {
+
+  ctx.save()
+  ctx.globalAlpha = 0.3
+
+  ctx.translate(scale(fBird.x) - scale(bird.x), 0);
+  renderBird(fWorld, fBird)
+
+  ctx.restore()
+}
+
+
+module.exports = render;
+module.exports.renderFuture = renderFuture;
