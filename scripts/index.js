@@ -128,7 +128,10 @@ function connect() {
 }
 
 let destroyRenderers = connect();
-module.hot.accept('./render', () => {
-  destroyRenderers.forEach(fn => fn());
-  destroyRenderers = connect();
-});
+
+if(module.hot) {
+  module.hot.accept('./render', () => {
+    destroyRenderers.forEach(fn => fn());
+    destroyRenderers = connect();
+  });
+}
