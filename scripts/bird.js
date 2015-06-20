@@ -28,7 +28,7 @@ export function updateBird(bird, [[input, output], world]) {
     x: bird.x + bird.vx,
     vx: output.birdTouchedPipe ? 0 : bird.vx,
     y: bird.y + bird.vy,
-    vy: bird.vy - 0.28,
+    vy: bird.vy - GRAVITY,
     touchesGround: false,
     groundTouchTime: bird.touchesGround ? bird.groundTouchTime + 1 : 0
   }

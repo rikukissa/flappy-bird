@@ -4,14 +4,15 @@ import get from 'lodash.get';
 import identity from 'lodash.identity';
 import partialRight from 'lodash.partialright';
 import {replaceNotifier$} from './hotReplaceNotifier';
-const sliderEl = document.getElementById('slider');
+
+const sliderEl = document.getElementById('future-slider');
 const framesEl = document.getElementById('frames');
 
 import {PAUSE_KEY} from './constants';
 
 const bus = new Bacon.Bus();
 
-const sliderChange$ = Bacon.fromEvent(document.getElementById('slider'), 'input')
+const sliderChange$ = Bacon.fromEvent(sliderEl, 'input')
   .map(e => parseInt(e.target.value, 10));
 
 

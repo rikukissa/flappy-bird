@@ -46,34 +46,18 @@ const birdTouchedPipe = gameOutput.map(birdTouchesPipe);
 const output = Bacon.zipWith(
   (birdTouchedGround, birdTouchedPipe) => ({birdTouchedGround, birdTouchedPipe}),
   birdTouchedGround.startWith(false),
-  birdTouchedPipe.startWith(false))
+  birdTouchedPipe.startWith(false)
+)
 
-const input = Bacon.zipWith((userClicksForFrame) => ({clicks: userClicksForFrame}), userClicksForFrame)
+const input = Bacon.zipWith((clicks) => ({clicks}),
+  userClicksForFrame
+  // Possibly more coming
+)
 
 const io = Bacon.zipAsArray(
-  input.filter(shouldRun$),
+  input,
   output
-);
-
-
-
-function scanStreams(fn) {
-  var initialValue;
-  var accumulator;
-
-  return function(sourceVal, value) {
-    if(!initialValue) {
-      initialValue = sourceVal;
-      accumulator = sourceVal;
-    }
-    if(sourceVal !== initialValue) {
-      accumulator = sourceVal;
-      initialValue = sourceVal;
-    }
-    accumulator = fn(accumulator, value);
-    return accumulator;
-  }
-}
+).filter(shouldRun$);
 
 function doTick(state, input) {
   let [world, bird, pipes] = state.state;
@@ -110,10 +94,15 @@ const futures$ = Bacon.zipWith((currentState, futureInputs) => {
 
 // Game world update
 const updatedWorld = io.scan(initialWorld, updateWorld);
-const updatedBird = Bacon.zipAsArray(io, updatedWorld).scan(initialBird, updateBird);
-const updatedPipes = Bacon.zipAsArray(updatedWorld, updatedBird).scan(initialPipes, updatePipes);
 
-const updatedGameWorld = Bacon.zipAsArray(updatedWorld, updatedBird, updatedPipes);
+const updatedBird = Bacon.zipAsArray(io, updatedWorld)
+  .scan(initialBird, updateBird);
+
+const updatedPipes = Bacon.zipAsArray(updatedWorld, updatedBird)
+  .scan(initialPipes, updatePipes);
+
+const updatedGameWorld = Bacon
+  .zipAsArray(updatedWorld, updatedBird, updatedPipes);
 
 const game = updatedGameWorld.filter(shouldRun$)
   .merge(selectedState$.map('.state'))
@@ -121,6 +110,7 @@ const game = updatedGameWorld.filter(shouldRun$)
 
 Bacon.zipWith((state, tick, input, output) => ({state, tick, input, output}), game, tick, input, output)
   .filter(shouldRun$)
+  .filter(({state}) => state[0].running)
   .onValue(record);
 
 game.onValue(world => gameOutput.push(world));

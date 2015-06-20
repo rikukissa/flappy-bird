@@ -1,0 +1,35 @@
+html, body, #app, #game {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+#app {
+  box-sizing: border-box;
+  padding-bottom: 200px;
+}
+#controls {
+  width: 100%;
+  height: 200px;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+}
+canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+#future-slider {
+  width: 100%;
+}
+
+.slider {
+
+}
+
+.future-slider {
+  margin-top: -9px;
+}
