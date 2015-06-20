@@ -28,7 +28,7 @@ export function updateBird(bird, [[input, output], world]) {
     x: bird.x + bird.vx,
     vx: output.birdTouchedPipe ? 0 : bird.vx,
     y: bird.y + bird.vy,
-    vy: bird.vy - GRAVITY,
+    vy: bird.vy - 0.28,
     touchesGround: false,
     groundTouchTime: bird.touchesGround ? bird.groundTouchTime + 1 : 0
   }
@@ -59,3 +59,5 @@ export function birdTouchesPipe([, bird, pipes]) {
 export function birdTouchesGround(bird) {
   return bird.y - BIRD_RADIUS * 2 <= GROUND_HEIGHT;
 }
+
+require('./hotReplaceNotifier')();

@@ -1,3 +1,4 @@
+import extend from 'extend';
 import set from 'lodash.set';
 import {WORLD_HEIGHT} from './constants';
 
@@ -8,15 +9,21 @@ export const initialWorld = {
 }
 
 export function updateWorld(world, [input, output]) {
-  world.tick++;
+  const w = {
+    running: world.running,
+    height: world.height,
+    tick: world.tick + 1
+  };
 
-  if(!world.running && input.clicks.length > 0) {
-    return set(world, 'running', true);
+  if(!w.running && input.clicks.length > 0) {
+    return set(w, 'running', true);
   }
 
-  if(world.running && output.gameEnds) {
-    return set(world, 'running', false);
+  if(w.running && output.gameEnds) {
+    return set(w, 'running', false);
   }
 
-  return world;
+  return w;
 };
+
+require('./hotReplaceNotifier')();

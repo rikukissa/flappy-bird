@@ -185,16 +185,16 @@ function render(world, bird, pipes) {
 
 
 function renderFuture([fWorld, fBird, fPipes], [world, bird, pipes]) {
-
   ctx.save()
-  ctx.globalAlpha = 0.3
+  ctx.globalAlpha = 0.3;
 
-  ctx.translate(scale(fBird.x) - scale(bird.x), 0);
+  ctx.translate(scale(fBird.x - bird.x), 0);
   renderBird(fWorld, fBird)
 
   ctx.restore()
 }
 
-
 module.exports = render;
 module.exports.renderFuture = renderFuture;
+
+require('./hotReplaceNotifier')();

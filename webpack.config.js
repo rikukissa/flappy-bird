@@ -2,6 +2,7 @@
 
 var path = require('path');
 var webpack = require('webpack');
+var extend = require('extend');
 
 var production = process.env.NODE_ENV == 'production';
 
@@ -25,7 +26,7 @@ if(!production) {
 
 
 module.exports = {
-  devtool: 'eval',
+  devtool: 'inline-source-map',
   entry: entries,
   output: {
     path: path.join(__dirname, 'build'),
@@ -38,9 +39,9 @@ module.exports = {
   },
   module: {
     loaders: [{
-      test: /\.jsx?$/,
-      loaders: ['react-hot', 'babel'],
-      include: path.join(__dirname, 'scripts')
+      test: /\.js$/,
+      exclude: /node_modules/,
+      loaders: ['monkey-hot', 'babel']
     }, {
       test: /\.css$/,
       loaders: ['style', 'css']
@@ -58,3 +59,4 @@ module.exports = {
     ]
   }
 };
+

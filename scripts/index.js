@@ -11,26 +11,20 @@ import {
   BIRD_RADIUS,
   GROUND_HEIGHT,
   PIPE_DISTANCE,
-  PAUSE_KEY,
   HOLE_HEIGHT,
   PIPE_WIDTH
 } from './constants';
 
-import {record, selectedState$, isManual$, futureInput$} from './store'
-
+import {record, selectedState$, shouldRun$, futureInput$} from './store'
 import {initialBird, updateBird, birdTouchesPipe, birdTouchesGround} from './bird'
 import {initialWorld, updateWorld} from './world'
 import {initialPipes, updatePipes} from './pipes'
 
 // User events
 const userClicks = Bacon.fromEvent(window, 'click');
-const paused = Bacon.fromEvent(window, 'keydown')
-  .filter(ev => ev.keyCode === PAUSE_KEY)
-  .scan(false, paused => !paused);
 
 // Game tick
-const tick = Bacon.scheduleAnimationFrame().bufferWithTime(FRAME_RATE)
-  .filter(paused.or(isManual$).not());
+const tick = Bacon.scheduleAnimationFrame().bufferWithTime(FRAME_RATE).filter(shouldRun$);
 
 const userClicksForFrame = userClicks.bufferUntilValue(tick)
 
@@ -55,31 +49,33 @@ const output = Bacon.zipWith(
 const input = Bacon.zipWith((userClicksForFrame) => ({clicks: userClicksForFrame}), userClicksForFrame)
 
 const io = Bacon.zipAsArray(
-  input.filter(isManual$.not()),
+  input.filter(shouldRun$),
   output
 );
 
 
+
 function scanStreams(fn) {
-  var cachedChar;
+  var initialValue;
   var accumulator;
 
-  return (sourceVal, value) => {
-    if(!cachedChar) {
-      cachedChar = sourceVal;
+  return function(sourceVal, value) {
+    if(!initialValue) {
+      initialValue = sourceVal;
       accumulator = sourceVal;
     }
-    if(sourceVal !== cachedChar) {
+    if(sourceVal !== initialValue) {
       accumulator = sourceVal;
-      cachedChar = sourceVal;
+      initialValue = sourceVal;
     }
     accumulator = fn(accumulator, value);
     return accumulator;
   }
 }
 
-const futureState$ = Bacon.combineWith(scanStreams((state, input) => {
+function doTick(state, input) {
   let [world, bird, pipes] = state.state;
+
   const {tick} = state;
   let {output} = state;
 
@@ -98,7 +94,17 @@ const futureState$ = Bacon.combineWith(scanStreams((state, input) => {
     output,
     input
   }
-}), selectedState$, futureInput$)
+}
+
+const futures$ = Bacon.zipWith((currentState, futureInputs) => {
+  const allFutureStates = [];
+  futureInputs.reduce((acc, input) => {
+    const newState = doTick(acc, input);
+    allFutureStates.push(newState);
+    return newState;
+  }, currentState)
+  return allFutureStates;
+}, selectedState$, futureInput$).flatMap(Bacon.fromArray);
 
 // Game world update
 const updatedWorld = io.scan(initialWorld, updateWorld);
@@ -107,31 +113,19 @@ const updatedPipes = Bacon.zipAsArray(updatedWorld, updatedBird).scan(initialPip
 
 const updatedGameWorld = Bacon.zipAsArray(updatedWorld, updatedBird, updatedPipes);
 
-const game = updatedGameWorld.filter(isManual$.not())
+const game = updatedGameWorld.filter(shouldRun$)
   .merge(selectedState$.map('.state'))
 
 
 Bacon.zipWith((state, tick, input, output) => ({state, tick, input, output}), game, tick, input, output)
-  .filter(isManual$.not())
+  .filter(shouldRun$)
   .onValue(record);
 
 game.onValue(world => gameOutput.push(world));
 
 // Rendering
-function connect() {
-  const renderer = require('./render');
-  return [game.onValues(renderer),
-          Bacon.combineAsArray(
-            futureState$.map('.state'),
-            game
-          ).onValues(renderer.renderFuture)];
-}
 
-let destroyRenderers = connect();
+game.onValues(require('./render'));
 
-if(module.hot) {
-  module.hot.accept('./render', () => {
-    destroyRenderers.forEach(fn => fn());
-    destroyRenderers = connect();
-  });
-}
+Bacon.combineAsArray(futures$.map('.state'), game)
+  .onValues(require('./render').renderFuture);

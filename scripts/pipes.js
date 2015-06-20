@@ -1,3 +1,4 @@
+import extend from 'extend'
 import {random} from './utils'
 export const initialPipes = [];
 
@@ -12,7 +13,7 @@ export function updatePipes(pipes, [world, bird]) {
     return initialPipes;
   }
 
-  const newPipes = pipes.slice(0);
+  const newPipes = pipes.slice(0).map((pipe) => extend({}, pipe));
 
   if(newPipes.length > 15) {
     newPipes.shift()
