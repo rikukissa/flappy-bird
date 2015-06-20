@@ -9,6 +9,7 @@ import {
   FRAME_RATE,
   WORLD_HEIGHT,
   BIRD_RADIUS,
+  SPACE_KEY,
   GROUND_HEIGHT,
   PIPE_DISTANCE,
   HOLE_HEIGHT,
@@ -21,7 +22,8 @@ import {initialWorld, updateWorld} from './world'
 import {initialPipes, updatePipes} from './pipes'
 
 // User events
-const userClicks = Bacon.fromEvent(window, 'click');
+const userClicks = Bacon.fromEvent(window, 'click').merge(
+  Bacon.fromEvent(window, 'keydown').map('.keyCode').filter(x => x === SPACE_KEY));
 
 // Game tick
 const tick = Bacon.scheduleAnimationFrame().bufferWithTime(FRAME_RATE).filter(shouldRun$);
