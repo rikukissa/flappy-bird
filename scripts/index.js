@@ -1,123 +1,60 @@
-import set from 'lodash.set';
-import clone from 'lodash.clone';
-import get from 'lodash.get';
-import partialRight from 'lodash.partialright';
-import Bacon from 'bacon.animationframe';
+import identity from 'lodash.identity';
+import Bacon from 'baconjs';
+require('bacon.animationframe');
 require('./bufferUntilValue');
 
 import {
   FRAME_RATE,
-  WORLD_HEIGHT,
-  BIRD_RADIUS,
-  SPACE_KEY,
-  GROUND_HEIGHT,
-  PIPE_DISTANCE,
-  HOLE_HEIGHT,
-  PIPE_WIDTH
+  SPACE_KEY
 } from './constants';
 
-import {record, selectedState$, shouldRun$, futureInput$} from './store'
-import {initialBird, updateBird, birdTouchesPipe, birdTouchesGround} from './bird'
-import {initialWorld, updateWorld} from './world'
-import {initialPipes, updatePipes} from './pipes'
+import {record, selectedState$, isRunning$, futureInput$} from './store'
+import gameLoop from './gameLoop'
+import {initialBird} from './bird'
+import {initialWorld} from './world'
+import {initialPipes} from './pipes'
+
 
 // User events
-const userClicks = Bacon.fromEvent(window, 'click').merge(
-  Bacon.fromEvent(window, 'keydown').map('.keyCode').filter(x => x === SPACE_KEY));
+const spacePressed = Bacon.fromEvent(window, 'keydown').map('.keyCode').filter(x => x === SPACE_KEY);
+const mouseClicked = Bacon.fromEvent(window, 'click')
 
 // Game tick
-const tick = Bacon.scheduleAnimationFrame().bufferWithTime(FRAME_RATE).filter(shouldRun$);
+const tick = Bacon.scheduleAnimationFrame().bufferWithTime(FRAME_RATE)
+  .filter(isRunning$);
 
-const userClicksForFrame = userClicks.bufferUntilValue(tick)
+const userClicksForFrame = mouseClicked.merge(spacePressed).bufferUntilValue(tick)
 
 // Input caused by game state
-const gameOutput = new Bacon.Bus();
-
-const birdTouchedGround = gameOutput
-  .flatMap(([, bird]) => {
-    if(birdTouchesGround(bird) && bird.groundTouchTime === 0) {
-      return Bacon.later(1000, true);
-    }
-    return false;
-  });
-
-const birdTouchedPipe = gameOutput.map(birdTouchesPipe);
-
-const output = Bacon.zipWith(
-  (birdTouchedGround, birdTouchedPipe) => ({birdTouchedGround, birdTouchedPipe}),
-  birdTouchedGround.startWith(false),
-  birdTouchedPipe.startWith(false)
-)
-
-const input = Bacon.zipWith((clicks) => ({clicks}),
+let i = 0;
+const input = Bacon.zipWith((clicks) => ({clicks, tick: ++i}),
   userClicksForFrame
   // Possibly more coming
 )
 
-const io = Bacon.zipAsArray(
-  input,
-  output
-).filter(shouldRun$);
-
-function doTick(state, input) {
-  let [world, bird, pipes] = state.state;
-
-  const {tick} = state;
-  let {output} = state;
-
-  world = updateWorld(world, [input, output]);
-  bird = updateBird(bird, [[input, output], world]);
-  pipes = updatePipes(pipes, [world, bird]);
-
-  output = {
-    birdTouchedGround: birdTouchesGround(bird),
-    birdTouchedPipe: birdTouchesPipe([world, bird, pipes])
-  }
-
-  return {
-    state: [world, bird, pipes],
-    tick,
-    output,
-    input
-  }
-}
-
-const futures$ = Bacon.zipWith((currentState, futureInputs) => {
-  const allFutureStates = [];
-  futureInputs.reduce((acc, input) => {
-    const newState = doTick(acc, input);
-    allFutureStates.push(newState);
-    return newState;
-  }, currentState)
-  return allFutureStates;
-}, selectedState$, futureInput$).flatMap(Bacon.fromArray);
-
-// Game world update
-const updatedWorld = io.scan(initialWorld, updateWorld);
-
-const updatedBird = Bacon.zipAsArray(io, updatedWorld)
-  .scan(initialBird, updateBird);
-
-const updatedPipes = Bacon.zipAsArray(updatedWorld, updatedBird)
-  .scan(initialPipes, updatePipes);
-
-const updatedGameWorld = Bacon
-  .zipAsArray(updatedWorld, updatedBird, updatedPipes);
-
-const game = updatedGameWorld.filter(shouldRun$)
-  .merge(selectedState$.map('.state'))
+const futures$ = Bacon.zipWith((initialState, futureInput) => {
+  // console.log(initialState, futureInput);
+  return gameLoop(Bacon.fromArray(futureInput), initialState);
+}, selectedState$, futureInput$).flatMap(identity);
 
 
-Bacon.zipWith((state, tick, input, output) => ({state, tick, input, output}), game, tick, input, output)
-  .filter(shouldRun$)
-  .filter(({state}) => state[0].running)
-  .onValue(record);
+// futures$.log()
 
-game.onValue(world => gameOutput.push(world));
+Bacon
+  .combineAsArray(futures$, selectedState$)
+  .onValues(require('./render').renderFuture)
+
+const game = gameLoop(input.filter(isRunning$), {
+  bird: initialBird,
+  pipes: initialPipes,
+  world: initialWorld
+});
+
+Bacon.zipWith((state, input) => ({state, input}), game, input)
+.filter(isRunning$)
+.onValue(record);
+
 
 // Rendering
+game.merge(selectedState$).onValue(require('./render'));
 
-game.onValues(require('./render'));
-
-Bacon.combineAsArray(futures$.map('.state'), game)
-  .onValues(require('./render').renderFuture);

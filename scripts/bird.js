@@ -44,10 +44,11 @@ export function updateBird(bird, [[input, output], world]) {
   if(input.clicks.length > 0 && !newBird.touchesGround) {
     newBird.vy = 3;
   }
+
   return newBird;
 };
 
-export function birdTouchesPipe([, bird, pipes]) {
+export function birdTouchesPipe({bird, pipes}) {
   return some(pipes, (pipe) => {
     // Horizontal check
     if(!(bird.x + BIRD_RADIUS*2 > pipe.x && bird.x < pipe.x + PIPE_WIDTH)) return false;
@@ -56,7 +57,7 @@ export function birdTouchesPipe([, bird, pipes]) {
     return !(bird.y < pipe.y && bird.y - BIRD_RADIUS*2 > pipe.y - HOLE_HEIGHT)
   });
 }
-export function birdTouchesGround(bird) {
+export function birdTouchesGround({bird}) {
   return bird.y - BIRD_RADIUS * 2 <= GROUND_HEIGHT;
 }
 

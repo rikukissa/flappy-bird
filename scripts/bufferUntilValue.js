@@ -1,4 +1,4 @@
-import Bacon from 'bacon.animationframe';
+import Bacon from 'baconjs';
 
 // http://stackoverflow.com/a/24774276
 Bacon.EventStream.prototype.bufferUntilValue = function(valve) {

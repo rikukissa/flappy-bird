@@ -1,4 +1,4 @@
-import Bacon from 'bacon.animationframe';
+import Bacon from 'baconjs';
 import pluck from 'lodash.pluck';
 import get from 'lodash.get';
 import identity from 'lodash.identity';
@@ -10,37 +10,37 @@ const framesEl = document.getElementById('frames');
 
 import {PAUSE_KEY} from './constants';
 
-const bus = new Bacon.Bus();
+const recordedStates$ = new Bacon.Bus();
 
 const sliderChange$ = Bacon.fromEvent(sliderEl, 'input')
   .map(e => parseInt(e.target.value, 10));
 
+const paused$ = Bacon.fromEvent(window, 'keydown')
+  .filter(ev => ev.keyCode === PAUSE_KEY)
+  .scan(false, paused => !paused);
 
-const states$ = bus.scan([], (states, value) => {
+paused$.filter(identity).onValue(() => sliderEl.focus());
+
+const allStates$ = recordedStates$.scan([], (states, value) => {
   states.push(value)
   return states;
 });
 
 const updateRequest$ = Bacon.combineWith(identity, sliderChange$, replaceNotifier$);
-
-const paused = Bacon.fromEvent(window, 'keydown')
-  .filter(ev => ev.keyCode === PAUSE_KEY)
-  .scan(false, paused => !paused);
-
-const shouldRun$ = updateRequest$.map(false).toProperty().startWith(true).and(paused.not());
+const isRunning$ = updateRequest$.map(false).toProperty().startWith(true).and(paused$.not());
 
 const selectedState$ = Bacon.combineWith((arr, index) => arr[index] || arr[arr.length - 1],
-  states$.filter(shouldRun$),
-  updateRequest$).toEventStream();
+  allStates$.filter(isRunning$),
+  updateRequest$).map('.state').toEventStream();
 
+const futureInput$ = allStates$.sampledBy(
+  updateRequest$,
+  (arr, index) => arr.slice(index + 1, arr.length)
+  ).map(partialRight(pluck, 'input'));
 
-const futureInput$ = Bacon.zipWith((arr, index) => arr.slice(index, arr.length),
-  states$.filter(shouldRun$),
-  updateRequest$).map(partialRight(pluck, 'input'));
+const newStatesLength$ = allStates$.map(a => a.length);
 
-const newStatesLength$ = states$.map(a => a.length);
-
-newStatesLength$.filter(shouldRun$)
+newStatesLength$.filter(isRunning$)
   .onValue(val => sliderEl.value = val)
 
 newStatesLength$.onValue(x => {
@@ -48,7 +48,7 @@ newStatesLength$.onValue(x => {
   framesEl.innerHTML = x;
 })
 
-module.exports.record = bus.push.bind(bus);
-module.exports.shouldRun$ = shouldRun$;
+module.exports.record = recordedStates$.push.bind(recordedStates$);
+module.exports.isRunning$ = isRunning$;
 module.exports.selectedState$ = selectedState$;
 module.exports.futureInput$ = futureInput$;

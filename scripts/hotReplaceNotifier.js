@@ -1,4 +1,4 @@
-import Bacon from 'bacon.animationframe';
+import Bacon from 'baconjs';
 
 
 const bus = new Bacon.Bus();

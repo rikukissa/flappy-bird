@@ -170,7 +170,7 @@ function renderPipes(pipes, bird) {
   })
 }
 
-function render(world, bird, pipes) {
+function render({world, bird, pipes}) {
   if(world.running !== running) {
     updateRunningClass(world.running);
     running = world.running;
@@ -184,12 +184,12 @@ function render(world, bird, pipes) {
 }
 
 
-function renderFuture([fWorld, fBird, fPipes], [world, bird, pipes]) {
+function renderFuture(future, {bird}) {
   ctx.save()
   ctx.globalAlpha = 0.3;
 
-  ctx.translate(scale(fBird.x - bird.x), 0);
-  renderBird(fWorld, fBird)
+  ctx.translate(scale(future.bird.x - bird.x), 0);
+  renderBird(future.world, future.bird)
 
   ctx.restore()
 }
