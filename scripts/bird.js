@@ -26,7 +26,8 @@ export function updateBird(bird, [[input, output], world]) {
 
   const newBird = {
     x: bird.x + bird.vx,
-    vx: output.birdTouchedPipe ? 0 : bird.vx,
+    // TODO vx: output.birdTouchedPipe ? 0 : bird.vx,
+    vx: output.birdTouchedPipe ? 0 : Math.min(bird.vx + 0.1, 2),
     y: bird.y + bird.vy,
     vy: bird.vy - GRAVITY,
     touchesGround: false,

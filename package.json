@@ -4,7 +4,8 @@
   "description": "Boilerplate for ReactJS project with hot code reloading",
   "scripts": {
     "start": "node server.js",
-    "build": "NODE_ENV=production webpack -p"
+    "build": "NODE_ENV=production webpack -p",
+    "test": "mocha tests/**/*.js --compilers js:babel-core/register"
   },
   "repository": {
     "type": "git",
@@ -40,6 +41,7 @@
     "image-webpack-loader": "^1.6.1",
     "imagemin": "^3.2.0",
     "lodash.reduce": "^3.1.2",
+    "mocha": "^2.2.5",
     "monkey-hot-loader": "0.0.3",
     "react-hot-loader": "^1.2.2",
     "resize-image-loader": "0.0.3",
