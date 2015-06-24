@@ -19,8 +19,8 @@ export default function gameLoop(input, initials) {
 
   const output = Bacon.zipWith(
     (birdTouchedGround, birdTouchedPipe) => ({birdTouchedGround, birdTouchedPipe}),
-    birdTouchedGround.startWith(false),
-    birdTouchedPipe.startWith(false)
+    birdTouchedGround.startWith(birdTouchesGround(initials)),
+    birdTouchedPipe.startWith(birdTouchesPipe(initials))
   )
 
   const io = Bacon.zipAsArray(
