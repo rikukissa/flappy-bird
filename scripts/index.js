@@ -33,12 +33,8 @@ const input = Bacon.zipWith((clicks) => ({clicks, tick: ++i}),
 )
 
 const futures$ = Bacon.zipWith((initialState, futureInput) => {
-  // console.log(initialState, futureInput);
   return gameLoop(Bacon.fromArray(futureInput), initialState);
 }, selectedState$, futureInput$).flatMap(identity);
-
-
-// futures$.log()
 
 Bacon
   .combineAsArray(futures$, selectedState$)
