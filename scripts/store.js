@@ -35,16 +35,12 @@ const selectedState$ = Bacon.combineWith((arr, index) => arr[index] || arr[arr.l
 
 const futureInput$ = allStates$.sampledBy(
   updateRequest$,
-  (arr, index) => arr.slice(index + 1, arr.length)
+  (arr, index) => arr.slice(index + 1)
   ).map(partialRight(pluck, 'input'));
 
-const newStatesLength$ = allStates$.map(a => a.length);
-
-newStatesLength$.filter(isRunning$)
-  .onValue(val => sliderEl.value = val)
-
-newStatesLength$.onValue(x => {
+allStates$.map('.length').onValue(x => {
   sliderEl.max = x;
+  sliderEl.value = x;
   framesEl.innerHTML = x;
 })
 
