@@ -20,7 +20,7 @@ export const initialBird = {
 };
 
 export function updateBird(bird, [[input, output], world]) {
-  if(!world.running) {
+  if(!world.running || input.gameEnds) {
     return initialBird;
   }
 
@@ -42,7 +42,7 @@ export function updateBird(bird, [[input, output], world]) {
     newBird.touchesGround = true;
   }
 
-  if(input.clicks.length > 0 && !newBird.touchesGround) {
+  if(input.clicks.length > 0) {
     newBird.vy = 3;
   }
 

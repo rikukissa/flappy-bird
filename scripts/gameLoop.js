@@ -1,3 +1,4 @@
+import extend from 'extend';
 import identity from 'lodash.identity';
 import {toObject} from './utils'
 import Bacon from 'baconjs';
@@ -16,13 +17,15 @@ export default function createGameLoop(input$, initials) {
   const gameOutput$ = new Bacon.Bus();
 
   // Output streams
-  const birdTouchedGround$ = gameOutput$.flatMap(birdTouchesGround);
-  const birdTouchedPipe$ = gameOutput$.map(birdTouchesPipe);
+  const birdTouchedGround$ = gameOutput$.flatMap(birdTouchesGround).toProperty();
+  const birdTouchedPipe$ = gameOutput$.map(birdTouchesPipe).toProperty();
+  const gameRestarted$ = gameOutput$.map(({world}) => world.restarted).toProperty();
 
   const output$ = Bacon.zipWith(
-    toObject('birdTouchedGround', 'birdTouchedPipe'),
+    toObject('birdTouchedGround', 'birdTouchedPipe', 'gameRestarted'),
     birdTouchedGround$.startWith(birdTouchesGround(initials)),
-    birdTouchedPipe$.startWith(birdTouchesPipe(initials))
+    birdTouchedPipe$.startWith(birdTouchesPipe(initials)),
+    gameRestarted$.startWith(false)
   )
 
   const io$ = Bacon.zipAsArray(input$, output$);
@@ -44,5 +47,5 @@ export default function createGameLoop(input$, initials) {
 
   game$.onValue(gameOutput$.push.bind(gameOutput$));
 
-  return game$;
+  return Bacon.zipWith((game, output) => extend(game, {output}), game$, output$);
 }

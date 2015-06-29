@@ -10,15 +10,17 @@ export const initialWorld = {
 export function updateWorld(world, [input, output]) {
   const newWorld = {
     running: world.running,
-    tick: world.tick + 1
+    tick: world.tick + 1,
+    restarted: false
   };
 
   if(!newWorld.running && input.clicks.length > 0) {
     newWorld.running = true;
   }
 
-  if(newWorld.running && output.gameEnds) {
+  if(newWorld.running && input.gameEnds) {
     newWorld.running = false;
+    newWorld.restarted = true;
   }
 
   return newWorld;
